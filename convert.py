@@ -1,14 +1,11 @@
+
 import tensorflow as tf
-
-# Path to the SavedModel directory
-saved_model_dir = "C:\\Users\\user\\.cache\\kagglehub\\models\\tensorflow\\ssd-mobilenet-v2\\tensorFlow2\\fpnlite-320x320\\1"
-
-# Convert the model to TFLite
-converter = tf.lite.TFLiteConverter.from_saved_model(saved_model_dir)
+# Convert the SavedModel to TFLite format
+converter = tf.lite.TFLiteConverter.from_saved_model("./ssd_mobilenet_v2_saved_model")
 tflite_model = converter.convert()
 
-# Save the TFLite model
+# Save the TFLite model to a file
 with open("ssd_mobilenet_v2.tflite", "wb") as f:
     f.write(tflite_model)
 
-print("Model successfully converted to TFLite format!")
+print("TFLite model saved as 'ssd_mobilenet_v2.tflite'")
