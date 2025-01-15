@@ -1,49 +1,56 @@
 import tensorflow as tf
 import numpy as np
-import cv2
 
 # Load and preprocess the image
-image_path = "image.jpg"  # Replace with your image path
-image = cv2.imread(image_path)
+image_path = "sample3.jpg"  # Replace with your image path
+image = tf.io.read_file(image_path)
+image = tf.image.decode_image(image, channels=3)
+image = tf.image.resize(image, [512, 512])
+input_image = tf.expand_dims(tf.cast(image, tf.uint8), axis=0)  # Add batch dimension
 
-# Resize image to match input shape requirement (300x300 for SSD models)
-input_image = cv2.resize(image, (300, 300))
-input_image = cv2.cvtColor(input_image, cv2.COLOR_BGR2RGB)
-input_image = np.expand_dims(input_image, axis=0).astype(np.uint8)  # Add batch dimension
-
-# Load TFLite model and allocate tensors
-interpreter = tf.lite.Interpreter(model_path="ssd_mobilenet_v2.tflite")  # Replace with your model path
+# Load the TFLite model
+interpreter = tf.lite.Interpreter(model_path="ssd_mobilenet_v2.tflite")
 interpreter.allocate_tensors()
 
 # Get input and output details
 input_details = interpreter.get_input_details()
 output_details = interpreter.get_output_details()
 
-# Resize tensor input to fixed shape if necessary
-interpreter.resize_tensor_input(input_details[0]['index'], [1, 300, 300, 3])
+# Dynamically resize the input tensor
+interpreter.resize_tensor_input(input_details[0]['index'], [1, 512, 512, 3])
 interpreter.allocate_tensors()
 
 # Set the input tensor
 interpreter.set_tensor(input_details[0]['index'], input_image)
 interpreter.invoke()
 
-# Extract outputs
-raw_boxes = interpreter.get_tensor(output_details[0]['index'])  # [1, 1917, 4]
-raw_scores = interpreter.get_tensor(output_details[1]['index'])  # [1, 1917, 91]
-detection_scores = np.array(interpreter.get_tensor(output_details[4]['index'])).squeeze()  # Ensure array format
-detection_classes = np.array(interpreter.get_tensor(output_details[2]['index'])).squeeze()  # Ensure array format
+# Extract relevant outputs
+num_detections = int(interpreter.get_tensor(output_details[2]['index'])[0])  # Scalar
+detection_boxes = interpreter.get_tensor(output_details[0]['index'])  # [1, 1917, 4]
+detection_classes = interpreter.get_tensor(output_details[1]['index'])  # [1, 100]
+detection_scores = interpreter.get_tensor(output_details[4]['index'])  # [1, 100, 4]
 
-# Handle potential edge cases for empty or incorrect output shapes
-if detection_scores.ndim == 0:
-    detection_scores = np.expand_dims(detection_scores, axis=0)
-if detection_classes.ndim == 0:
-    detection_classes = np.expand_dims(detection_classes, axis=0)
+# Class labels
+class_labels = {
+    1: "person",
+    2: "car",
+    3: "bicycle",
+    # Add more class mappings if available
+}
 
-# Process detections (set a threshold for detection)
-detection_threshold = 0.3
-
+# Process the detections
+threshold = 0.5  # Confidence threshold
 print("Detected Objects:")
-for score, class_id in zip(np.ravel(detection_scores), np.ravel(detection_classes)):
-    if float(score) > detection_threshold:
-        print(f"Class ID: {int(class_id)}, Confidence: {score:.2f}")
+for i in range(num_detections):
+    # Extract detection info
+    scores_for_detection = detection_scores[0][i]  # Shape: [4]
+    max_score_index = np.argmax(scores_for_detection)  # Index of the highest score
+    score = float(scores_for_detection[max_score_index])  # Confidence for the detected class
+    class_id = max_score_index  # Class ID from the highest score
+    box = detection_boxes[0][i]  # [ymin, xmin, ymax, xmax]
 
+    # Validate and filter detections
+    if score > threshold and all(0 <= coord <= 1 for coord in box):
+        label = class_labels.get(class_id, f"Unknown ({class_id})")
+        ymin, xmin, ymax, xmax = box  # Normalized coordinates
+        print(f"Class: {label}, Confidence: {score:.2f}, Box: [ymin={ymin:.2f}, xmin={xmin:.2f}, ymax={ymax:.2f}, xmax={xmax:.2f}]")
