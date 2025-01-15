@@ -2,7 +2,7 @@ import tensorflow as tf
 import numpy as np
 
 # Load and preprocess the image
-image_path = "sample3.jpg"  # Replace with your image path
+image_path = "p1.jpg"  # Replace with your image path
 image = tf.io.read_file(image_path)
 image = tf.image.decode_image(image, channels=3)
 image = tf.image.resize(image, [512, 512])
@@ -26,31 +26,40 @@ interpreter.invoke()
 
 # Extract relevant outputs
 num_detections = int(interpreter.get_tensor(output_details[2]['index'])[0])  # Scalar
-detection_boxes = interpreter.get_tensor(output_details[0]['index'])  # [1, 1917, 4]
-detection_classes = interpreter.get_tensor(output_details[1]['index'])  # [1, 100]
-detection_scores = interpreter.get_tensor(output_details[4]['index'])  # [1, 100, 4]
+detection_boxes = interpreter.get_tensor(output_details[0]['index'])[0][:num_detections]  # Top num_detections boxes
+detection_classes = interpreter.get_tensor(output_details[1]['index'])[0][:num_detections]  # Top num_detections classes
+detection_scores_raw = interpreter.get_tensor(output_details[4]['index'])[0][:num_detections]  # [num_detections, num_classes]
 
-# Class labels
-class_labels = {
-    1: "person",
-    2: "car",
-    3: "bicycle",
-    # Add more class mappings if available
-}
+# Extract the maximum confidence score for each bounding box
+detection_scores = np.max(detection_scores_raw, axis=1)  # Shape: [num_detections]
 
-# Process the detections
-threshold = 0.5  # Confidence threshold
+# Load labels from label.txt
+label_file = "label.txt"
+class_labels = {}
+with open(label_file, "r") as f:
+    for line in f:
+        parts = line.strip().split()
+        class_labels[int(parts[0])] = parts[1]
+
+# Apply Non-Max Suppression (NMS)
+iou_threshold = 0.5  # Intersection-over-Union threshold for suppression
+score_threshold = 0.7  # Minimum confidence score for detections
+
+selected_indices = tf.image.non_max_suppression(
+    detection_boxes,  # Top num_detections bounding boxes
+    detection_scores,  # Corresponding scores
+    max_output_size=10,  # Maximum number of boxes to keep
+    iou_threshold=iou_threshold,
+    score_threshold=score_threshold
+)
+
+selected_boxes = tf.gather(detection_boxes, selected_indices).numpy()
+selected_classes = tf.gather(detection_classes, selected_indices).numpy()
+selected_scores = tf.gather(detection_scores, selected_indices).numpy()
+
+# Display filtered detections
 print("Detected Objects:")
-for i in range(num_detections):
-    # Extract detection info
-    scores_for_detection = detection_scores[0][i]  # Shape: [4]
-    max_score_index = np.argmax(scores_for_detection)  # Index of the highest score
-    score = float(scores_for_detection[max_score_index])  # Confidence for the detected class
-    class_id = max_score_index  # Class ID from the highest score
-    box = detection_boxes[0][i]  # [ymin, xmin, ymax, xmax]
-
-    # Validate and filter detections
-    if score > threshold and all(0 <= coord <= 1 for coord in box):
-        label = class_labels.get(class_id, f"Unknown ({class_id})")
-        ymin, xmin, ymax, xmax = box  # Normalized coordinates
-        print(f"Class: {label}, Confidence: {score:.2f}, Box: [ymin={ymin:.2f}, xmin={xmin:.2f}, ymax={ymax:.2f}, xmax={xmax:.2f}]")
+for i, box in enumerate(selected_boxes):
+    label = class_labels.get(int(selected_classes[i]), f"Unknown ({int(selected_classes[i])})")
+    ymin, xmin, ymax, xmax = box  # Bounding box coordinates
+    print(f"- {label} (Confidence: {selected_scores[i]:.2f})")

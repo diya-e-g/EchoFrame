@@ -1,0 +1,6 @@
+1 person
+2 bicycle
+3 car
+4 motorcycle
+624 car
+1026 person
