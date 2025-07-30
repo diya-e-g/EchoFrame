@@ -1,15 +1,20 @@
 # Object Detection with Audio Feedback System
 
-<p align="center">
-  <img src="./images/pic1.jpeg" width="450" />
-  <img src="./images/pic2.jpeg" width="450" />
-</p>
-
 ## 🎯 Project Overview
 
-This project implements a real-time object detection system designed for deployment on **Xiaesp32s3** microcontrollers. The system captures live video, performs object detection using a **MobileNet SSD** model, and provides audio feedback for detected objects - making it particularly useful for accessibility applications.
+This project implements a real-time object detection system designed for deployment on **Xiaesp32s3** microcontrollers. The system captures live video, performs object detection using a **MobileNet SSD** model, and provides audio feedback for detected objects — making it particularly useful for accessibility applications.
 
 While the complete ESP32 deployment wasn't fully implemented, this repository contains all the core components for object detection with TensorFlow Lite optimization and audio feedback generation.
+
+</td>
+<td align="center">
+
+<img src="images/pic1.png" width="300" alt="Detection output" />
+
+</td>
+</tr>
+</table>
+
 
 ## 🏗️ Architecture
 
