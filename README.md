@@ -9,8 +9,8 @@ While the complete ESP32 deployment wasn't fully implemented, this repository co
 </td>
 <td align="center">
 
-<img src="./images/pic1.jpg" width="300" alt="Detection output" />
-<img src="./images/pic2.jpg" width="300" alt="Detection output" />
+<img src="./images/pic1.jpeg" width="300" alt="Detection output" />
+<img src="./images/pic2.jpeg" width="300" alt="Detection output" />
 
 </td>
 </tr>
