@@ -1,8 +1,8 @@
 # Object Detection with Audio Feedback System
 
 <p align="center">
-  <img src="images/pic1" width="450" />
-  <img src="images/pic2" width="450" />
+  <img src="./images/pic1.jpeg" width="450" />
+  <img src="./images/pic2.jpeg" width="450" />
 </p>
 
 ## 🎯 Project Overview
